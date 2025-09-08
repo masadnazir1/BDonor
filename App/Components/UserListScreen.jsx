@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,81 +7,54 @@ import {
   FlatList,
   Dimensions,
   Image,
+  ActivityIndicator,
+  TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import apiClient from '../Util/apiClient';
+import { useNavigation } from '@react-navigation/native';
+const { width } = Dimensions.get('screen');
 
-const { width, height } = Dimensions.get('screen');
-
-// Dummy user data
-const users = [
-  {
-    id: '1',
-    name: 'M. Aslam',
-    location: 'Islamabad, Pakistan',
-    bloodGroup: 'B-',
-    image: require('../Assets/user.jpg'),
-  },
-  {
-    id: '2',
-    name: 'Zeeshan',
-    location: 'Karachi, Pakistan',
-    bloodGroup: 'AB+',
-    image: require('../Assets/user.jpg'),
-  },
-  {
-    id: '3',
-    name: 'Faraz',
-    location: 'Lahore, Pakistan',
-    bloodGroup: 'O+',
-    image: require('../Assets/user.jpg'),
-  },
-  {
-    id: '4',
-    name: 'Ali',
-    location: 'Rawalpindi, Pakistan',
-    bloodGroup: 'A+',
-    image: require('../Assets/user.jpg'),
-  },
-  {
-    id: '5',
-    name: 'Ali',
-    location: 'Rawalpindi, Pakistan',
-    bloodGroup: 'A+',
-    image: require('../Assets/user.jpg'),
-  },
-  {
-    id: '6',
-    name: 'Ali',
-    location: 'Rawalpindi, Pakistan',
-    bloodGroup: 'A+',
-    image: require('../Assets/user.jpg'),
-  },
-  {
-    id: '7',
-    name: 'Ali',
-    location: 'Rawalpindi, Pakistan',
-    bloodGroup: 'A+',
-    image: require('../Assets/user.jpg'),
-  },
-  {
-    id: '8',
-    name: 'Ali',
-    location: 'Rawalpindi, Pakistan',
-    bloodGroup: 'A+',
-    image: require('../Assets/user.jpg'),
-  },
-];
+// Default avatar
+const defaultAvatar = require('../Assets/user.jpg');
 
 function UserListScreen() {
+  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredUsers, setFilteredUsers] = useState(users);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch donors from API
+  const fetchUsers = async () => {
+    try {
+      const response = await apiClient.get('/donation/donors');
+      setAllUsers(response.data);
+      setFilteredUsers(response.data);
+    } catch (error) {
+      console.error('Failed to fetch donors:', error.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchUsers();
+  };
 
   // Handle search input
   const handleSearch = text => {
     setSearchQuery(text);
-    const filteredData = users.filter(
+    const filteredData = allUsers.filter(
       user =>
-        user.name.toLowerCase().includes(text.toLowerCase()) ||
+        user.fullName.toLowerCase().includes(text.toLowerCase()) ||
         user.bloodGroup.toLowerCase().includes(text.toLowerCase()),
     );
     setFilteredUsers(filteredData);
@@ -89,11 +62,19 @@ function UserListScreen() {
 
   // Render each user item
   const renderUserItem = ({ item }) => (
-    <View style={styles.userItem}>
-      <Image source={item.image} style={styles.userAvatar} />
+    <TouchableOpacity
+      style={styles.userItem}
+      onPress={() => navigation.navigate('UserDetails', { user: item })}
+    >
+      <Image
+        source={
+          item.profilePicture ? { uri: item.profilePicture } : defaultAvatar
+        }
+        style={styles.userAvatar}
+      />
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.name}</Text>
-        <Text style={styles.userLocation}>{item.location}</Text>
+        <Text style={styles.userName}>{item.fullName}</Text>
+        <Text style={styles.userLocation}>{item.email}</Text>
       </View>
       <Text
         style={[
@@ -103,14 +84,23 @@ function UserListScreen() {
       >
         {item.bloodGroup}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 
-  // Get color for blood group (example logic)
+  // Get color for blood group
   const getBloodGroupColor = bloodGroup => {
-    if (bloodGroup === 'B-' || bloodGroup === 'O-') return 'red';
-    return '#4CAF50'; // Green for positive groups
+    if (bloodGroup.endsWith('-')) return 'red';
+    return '#4CAF50';
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#d32f2f" />
+        <Text>Loading donors...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -132,16 +122,25 @@ function UserListScreen() {
         keyExtractor={item => item.id}
         style={{ flex: 1 }}
         contentContainerStyle={styles.userList}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', marginTop: 20 }}>
+            No donors found
+          </Text>
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1 },
+  loaderContainer: {
     flex: 1,
-    // backgroundColor: '#f6f6f6',
-    // paddingTop: height * 0.05,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchBar: {
     flexDirection: 'row',
@@ -168,7 +167,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 15,
     borderRadius: 12,
-    // elevation: 5,
   },
   userAvatar: {
     width: 50,

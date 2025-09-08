@@ -7,7 +7,7 @@ const ShowImage = ({
   height = 100, // default height
   resizeMode = 'cover', // cover | contain | stretch | center
   borderRadius = 0,
-  tintColor = '#fff',
+  tintColor = '',
   style,
   fallbackSource, // optional: local image on error
   showLoader = true, // show loader while loading

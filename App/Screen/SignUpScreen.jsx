@@ -15,36 +15,63 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import ShowText from '../Components/Shared/ShowText';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import apiClient from '../Util/apiClient';
 
 const { width, height } = Dimensions.get('screen');
 
 function SignUpScreen() {
   const navigation = useNavigation();
 
-  // State to hold the form input values
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('');
   const [bloodGroup, setBloodGroup] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async () => {
+    if (!fullName || !gender || !bloodGroup || !email || !password) {
+      alert('Please fill all fields');
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await apiClient.post('/auth/signup', {
+        fullName,
+        gender,
+        bloodGroup,
+        email,
+        password,
+      });
+
+      alert('Signup successful!');
+      navigation.replace('LoginScreen');
+    } catch (error) {
+      console.log('Signup Error:', error.response?.data || error.message);
+      alert(error.response?.data?.error || 'Signup failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         {/* Top Section */}
         <View style={styles.topSection}>
-          {/* Back Button */}
           <View style={styles.BackANDImage}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Icon name="arrow-back-outline" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
-
-          {/* Header */}
         </View>
 
-        {/* Bottom Form Section */}
         <KeyboardAvoidingView
           style={styles.formWrapper}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -74,7 +101,6 @@ function SignUpScreen() {
 
             {/* Gender + Blood Group */}
             <View style={styles.RowForGenderGroup}>
-              {/* Gender */}
               <View style={styles.inputGroupRow}>
                 <Picker
                   selectedValue={gender}
@@ -82,12 +108,12 @@ function SignUpScreen() {
                   onValueChange={itemValue => setGender(itemValue)}
                 >
                   <Picker.Item label="Gender" value="" />
-                  <Picker.Item label="Male" value="male" />
-                  <Picker.Item label="Female" value="female" />
+                  <Picker.Item label="Male" value="MALE" />
+                  <Picker.Item label="Female" value="FEMALE" />
+                  <Picker.Item label="Other" value="OTHER" />
                 </Picker>
               </View>
 
-              {/* Blood Group */}
               <View style={styles.inputGroupRow}>
                 <Picker
                   selectedValue={bloodGroup}
@@ -95,14 +121,14 @@ function SignUpScreen() {
                   onValueChange={itemValue => setBloodGroup(itemValue)}
                 >
                   <Picker.Item label="Blood Group" value="" />
-                  <Picker.Item label="A+" value="A+" />
-                  <Picker.Item label="B+" value="B+" />
-                  <Picker.Item label="O+" value="O+" />
-                  <Picker.Item label="AB+" value="AB+" />
-                  <Picker.Item label="A-" value="A-" />
-                  <Picker.Item label="B-" value="B-" />
-                  <Picker.Item label="O-" value="O-" />
-                  <Picker.Item label="AB-" value="AB-" />
+                  <Picker.Item label="A+" value="A_POS" />
+                  <Picker.Item label="B+" value="B_POS" />
+                  <Picker.Item label="O+" value="O_POS" />
+                  <Picker.Item label="AB+" value="AB_POS" />
+                  <Picker.Item label="A-" value="A_NEG" />
+                  <Picker.Item label="B-" value="B_NEG" />
+                  <Picker.Item label="O-" value="O_NEG" />
+                  <Picker.Item label="AB-" value="AB_NEG" />
                 </Picker>
               </View>
             </View>
@@ -150,8 +176,14 @@ function SignUpScreen() {
             </View>
 
             {/* Sign Up Button */}
-            <TouchableOpacity style={styles.signUpButton}>
-              <Text style={styles.signUpButtonText}>Sign Up</Text>
+            <TouchableOpacity
+              style={styles.signUpButton}
+              onPress={handleSignup}
+              disabled={loading}
+            >
+              <Text style={styles.signUpButtonText}>
+                {loading ? 'Creating...' : 'Sign Up'}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -190,7 +222,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   formContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#eaf9ffff',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingVertical: width * 0.07,

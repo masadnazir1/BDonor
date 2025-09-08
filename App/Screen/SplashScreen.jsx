@@ -1,45 +1,52 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Dimensions } from 'react-native';
 import { useEffect } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import ShowImage from '../Components/Shared/Image';
-import ShowText from '../Components/Shared/ShowText';
-import { Dimensions } from 'react-native';
-import blooddrop from '../Assets/blood-drop.png';
-import plus from '../Assets/plus.png';
-const { width, height } = Dimensions.get('screen');
+import logo from '../Assets/logo.png';
 import { useNavigation } from '@react-navigation/native';
+import { getItem } from '../Util/storage';
 
-//
+const { width, height } = Dimensions.get('screen');
+
 function SplashScreen() {
   const navigation = useNavigation();
+
   useEffect(() => {
-    setTimeout(() => {
-      navigation.navigate('Itro1');
-    }, 3000);
+    let timeout;
+    const checkAuth = async () => {
+      try {
+        const token = await getItem('authToken');
+        timeout = setTimeout(() => {
+          if (token) {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'HomeScreen' }],
+            });
+          } else {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Itro1' }],
+            });
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('Error checking auth token:', error);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Itro1' }],
+        });
+      }
+    };
+    checkAuth();
+
+    return () => clearTimeout(timeout); // cleanup
   }, []);
 
-  //
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        <ShowImage source={blooddrop} />
-
-        <View style={styles.TextGroup}>
-          <ShowImage
-            source={plus}
-            width={20}
-            height={20}
-            style={styles.PlusIcon}
-          />
-          <ShowText
-            align="center"
-            weight="bold"
-            color="#fff"
-            size={width * 0.05}
-          >
-            Blood Donor
-          </ShowText>
-        </View>
+        <ShowImage source={logo} width={width * 0.5} height={width * 0.5} />
+        <View style={styles.TextGroup}></View>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -48,22 +55,13 @@ function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'darkred',
+    backgroundColor: '#eaf9ffff',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '30',
   },
   TextGroup: {
-    position: 'relative',
-    alignContent: 'center',
-    justifyContent: 'flex-end',
-    height: 40,
-    width: width * 0.5,
-  },
-  PlusIcon: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
+    marginTop: 20,
+    width: width * 0.6,
   },
 });
 

@@ -10,10 +10,12 @@ import {
   Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('screen');
 
 const SettingsModal = ({ isVisible, onClose }) => {
+  const navigation = useNavigation();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [nightLightEnabled, setNightLightEnabled] = useState(false);
 
@@ -63,7 +65,10 @@ const SettingsModal = ({ isVisible, onClose }) => {
               <Text style={styles.userName}>Albert</Text>
               <Text style={styles.email}>example@example.com</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.logoutButton}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('LoginScreen')}
+              style={styles.logoutButton}
+            >
               <Text style={styles.logoutText}>Log Out</Text>
             </TouchableOpacity>
           </View>

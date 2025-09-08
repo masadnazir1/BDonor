@@ -34,15 +34,15 @@ const ProfileHeader = ({ userName, profileImage, onSettingsPress }) => {
 const styles = StyleSheet.create({
   container: {
     width: width,
-    height: height * 0.2,
+    // height: height * 0.2,
     backgroundColor: '#d32f2f',
-    // borderBottomLeftRadius: 50,
-    borderBottomRightRadius: width * 0.2,
-    paddingLeft: width * 0.07,
-    paddingRight: width * 0.07,
+
+    paddingLeft: width * 0.05,
+    paddingRight: width * 0.05,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: width * 0.02,
   },
   avatar: {
     width: 50,
@@ -64,8 +64,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   settingsButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    // justifyContent: 'center',
+    // alignItems: 'center',
     padding: 8,
     backgroundColor: 'transparent',
     borderRadius: 25,

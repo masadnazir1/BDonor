@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -5,21 +6,46 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import ShowText from '../Components/Shared/ShowText';
+import apiClient from '../Util/apiClient';
+
 const { width, height } = Dimensions.get('screen');
 
 const UserProfile = () => {
-  const user = {
-    name: 'Albert',
-    gender: 'Male',
-    contact: '03---------',
-    country: 'Pakistan',
-    savedLives: 3,
-    bloodGroup: 'B+',
-    image: require('../Assets/user.jpg'),
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchUser = async () => {
+    try {
+      const { data } = await apiClient.get('/auth/user', {
+        params: { email: 'asad2@asad.com' },
+      });
+
+      if (data.user) setUser(data.user);
+    } catch (error) {
+      console.error(
+        'Error fetching user:',
+        error.response?.data || error.message,
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchUser();
   };
 
   const getBloodGroupColor = bloodGroup => {
@@ -27,14 +53,35 @@ const UserProfile = () => {
     return '#4CAF50';
   };
 
+  if (loading && !refreshing) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#d32f2f" />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={{ color: 'red' }}>Failed to load user</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {/* Top Stats Boxes */}
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* Top Stats */}
       <View style={styles.header}>
         <View style={styles.box}>
           <Icon name="heart-outline" size={28} color="#d32f2f" />
           <Text style={styles.boxLabel}>Saved Lives</Text>
-          <ShowText style={styles.boxValue}>{user.savedLives}</ShowText>
+          <ShowText style={styles.boxValue}>{user.donationCount || 0}</ShowText>
         </View>
 
         <View style={styles.box}>
@@ -43,7 +90,6 @@ const UserProfile = () => {
             size={28}
             color={getBloodGroupColor(user.bloodGroup)}
           />
-
           <ShowText style={styles.boxLabel}>Blood Group</ShowText>
           <ShowText
             style={[
@@ -51,37 +97,45 @@ const UserProfile = () => {
               { color: getBloodGroupColor(user.bloodGroup) },
             ]}
           >
-            {user.bloodGroup}
+            {user.bloodGroup?.replace('_', '+')}
           </ShowText>
         </View>
       </View>
 
-      {/* Profile Info Card */}
+      {/* Profile Info */}
       <View style={styles.profileInfoContainer}>
-        <Image source={user.image} style={styles.profileImage} />
+        <Image
+          source={
+            user.profilePicture
+              ? { uri: user.profilePicture }
+              : require('../Assets/user.jpg')
+          }
+          style={styles.profileImage}
+        />
         <View style={styles.profileDetails}>
           <ShowText style={styles.infoLabel}>
-            Name: <ShowText style={styles.infoValue}>{user.name}</ShowText>
+            Name: <ShowText style={styles.infoValue}>{user.fullName}</ShowText>
           </ShowText>
           <ShowText style={styles.infoLabel}>
             Gender: <ShowText style={styles.infoValue}>{user.gender}</ShowText>
           </ShowText>
           <ShowText style={styles.infoLabel}>
-            Contact:{' '}
-            <ShowText style={styles.infoValue}>{user.contact}</ShowText>
+            Email: <ShowText style={styles.infoValue}>{user.email}</ShowText>
           </ShowText>
           <ShowText style={styles.infoLabel}>
-            Country:{' '}
-            <ShowText style={styles.infoValue}>{user.country}</ShowText>
+            Available:{' '}
+            <ShowText style={styles.infoValue}>
+              {user.available ? 'Yes' : 'No'}
+            </ShowText>
           </ShowText>
         </View>
       </View>
 
-      {/* Available to Donate Button */}
+      {/* Available Button */}
       <TouchableOpacity style={styles.donateButton}>
         <Text style={styles.donateButtonText}>Available To Donate</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -89,7 +143,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: width * 0.05,
-    backgroundColor: '#fafafa',
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -104,8 +161,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     marginHorizontal: 5,
-    elevation: 4, // Android shadow
-    shadowColor: '#00000057', // iOS shadow
+    elevation: 4,
+    shadowColor: '#00000057',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 6,
@@ -128,8 +185,8 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: height * 0.04,
     alignItems: 'center',
-    elevation: 4, // Android shadow
-    shadowColor: '#00000057', // iOS shadow
+    elevation: 4,
+    shadowColor: '#00000057',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 6,
@@ -160,6 +217,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     elevation: 3,
+    marginTop: 10,
   },
   donateButtonText: {
     color: '#fff',

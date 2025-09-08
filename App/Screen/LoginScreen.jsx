@@ -7,18 +7,49 @@ import {
   Dimensions,
   Text,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import ShowText from '../Components/Shared/ShowText';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-
 import doctorEquipment from '../Assets/doctor-equipment.png';
+import apiClient from '../Util/apiClient';
+import { setItem } from '../Util/storage';
 
 const { width, height } = Dimensions.get('screen');
 
 function LoginScreen() {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  //
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.post('/auth/login', {
+        email,
+        password,
+      });
+
+      const { token, user } = response.data || response;
+
+      // save to async storage
+      await setItem('authToken', token);
+      await setItem('user', user);
+
+      console.log('user and token', user, token);
+
+      // Navigate to Home or Dashboard
+      navigation.replace('HomeScreen');
+    } catch (error) {
+      console.log('Login Error:', error.response?.data || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaProvider>
@@ -53,6 +84,8 @@ function LoginScreen() {
                 style={styles.input}
                 keyboardType="email-address"
                 returnKeyType="next"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
 
@@ -65,25 +98,18 @@ function LoginScreen() {
                 style={styles.input}
                 secureTextEntry
                 returnKeyType="done"
+                value={password}
+                onChangeText={setPassword}
               />
             </View>
 
-            {/* Keep me signed in */}
-            <View style={styles.checkboxWrapper}>
-              <TouchableOpacity>
-                <Text style={styles.checkLabel}>
-                  <Icon name="checkbox-outline" size={16} color="#d32f2f" />{' '}
-                  Keep me signed in
-                </Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Login Button */}
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => navigation.navigate('HomeScreen')}
-            >
-              <Text style={styles.loginButtonText}>Login</Text>
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Login</Text>
+              )}
             </TouchableOpacity>
 
             {/* Forgot password */}
@@ -138,19 +164,6 @@ const styles = StyleSheet.create({
     width: width,
     elevation: 8,
   },
-  avatarWrapper: {
-    alignSelf: 'center',
-    backgroundColor: '#eee',
-    borderRadius: 60,
-    padding: 12,
-    marginBottom: 20,
-    elevation: 4,
-  },
-  avatarImage: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-  },
   inputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -165,13 +178,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     color: '#333',
     fontSize: 15,
-  },
-  checkboxWrapper: {
-    marginBottom: 22,
-  },
-  checkLabel: {
-    color: '#555',
-    fontSize: 14,
   },
   loginButton: {
     backgroundColor: '#d32f2f',
