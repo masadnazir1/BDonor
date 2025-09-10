@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,10 +8,14 @@ import {
   Text,
   Image,
   ActivityIndicator,
+  NativeModules,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+
+const { GoogleSignInModule } = NativeModules;
 import ShowText from '../Components/Shared/ShowText';
 import { useNavigation } from '@react-navigation/native';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Icon from 'react-native-vector-icons/Ionicons';
 import doctorEquipment from '../Assets/doctor-equipment.png';
 import apiClient from '../Util/apiClient';
@@ -19,11 +23,37 @@ import { setItem } from '../Util/storage';
 
 const { width, height } = Dimensions.get('screen');
 
+GoogleSignin.configure({
+  webClientId:
+    '78919977610-e2b9milf5p6ts9im1puirttkp6qejnph.apps.googleusercontent.com',
+  offlineAccess: false,
+});
+
 function LoginScreen() {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const GoogleLogin = async () => {
+    await GoogleSignin.hasPlayServices();
+    const userInfo = await GoogleSignin.signIn();
+    return userInfo;
+  };
+
+  const signInGoogle = async () => {
+    setLoading(true);
+    try {
+      const response = await GoogleLogin(); // Google sign-in
+
+      console.log('user:', response.data.user);
+      console.log('idToken:', response.data.idToken);
+    } catch (error) {
+      console.log('Login Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   //
   const handleLogin = async () => {
@@ -111,6 +141,18 @@ function LoginScreen() {
                 <Text style={styles.loginButtonText}>Login</Text>
               )}
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.signInGoogle}
+              onPress={signInGoogle}
+            >
+              {loading ? (
+                <ActivityIndicator color="#0099ffff" />
+              ) : (
+                <Text style={styles.signInGoogleButtonText}>
+                  Continue with Google
+                </Text>
+              )}
+            </TouchableOpacity>
 
             {/* Forgot password */}
             <TouchableOpacity>
@@ -186,6 +228,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     elevation: 3,
+  },
+  signInGoogle: {
+    backgroundColor: '#ffffffff',
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginBottom: 12,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: '#ccc',
+  },
+
+  signInGoogleButtonText: {
+    color: '#000',
+    fontSize: 17,
+    fontWeight: 'bold',
   },
   loginButtonText: {
     color: '#fff',
